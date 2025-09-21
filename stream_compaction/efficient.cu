@@ -42,8 +42,6 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata, bool timer_enabled) {
-            if (timer_enabled) timer().startGpuTimer();
-
             int og_n = n;
             n = 1 << ilog2ceil(n);
             
@@ -51,6 +49,8 @@ namespace StreamCompaction {
             cudaMalloc((void**)&data, n * sizeof(int));
             cudaMemset(data, 0, n * sizeof(int));
             cudaMemcpy(data, idata, og_n * sizeof(int), cudaMemcpyHostToDevice);
+
+            if (timer_enabled) timer().startGpuTimer();
 
             int num_iterations = ilog2ceil(n);
 
@@ -68,12 +68,12 @@ namespace StreamCompaction {
                 DownSweep<<<blocksPerGrid_new, threadsPerBlock_new>>>(n, data, k);
             }
 
+            if (timer_enabled) timer().endGpuTimer();
+
             cudaMemcpy(odata, data, og_n * sizeof(int), cudaMemcpyDeviceToHost);
             cudaDeviceSynchronize();
 
             cudaFree(data);
-
-            if (timer_enabled) timer().endGpuTimer();
         }
 
         /**
@@ -86,13 +86,14 @@ namespace StreamCompaction {
          * @returns      The number of elements remaining after compaction.
          */
         int compact(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
             int *read, *flags, *scanout, *write;
             cudaMalloc((void**)&read, n * sizeof(int));
             cudaMalloc((void**)&flags, n * sizeof(int));
             cudaMalloc((void**)&scanout, n * sizeof(int));
 
             cudaMemcpy(read, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+
+            timer().startGpuTimer();
 
             CALCULATE_BLOCK_THREAD_SIZE_AUTO(n, BLOCK_SIZE);
 
@@ -111,6 +112,8 @@ namespace StreamCompaction {
 
             StreamCompaction::Common::kernScatter<<<blocksPerGrid, threadsPerBlock>>>(n, write, read, flags, scanout);
 
+            timer().endGpuTimer();
+
             cudaMemcpy(odata, write, len * sizeof(int), cudaMemcpyDeviceToHost);
             cudaDeviceSynchronize();
 
@@ -118,8 +121,6 @@ namespace StreamCompaction {
             cudaFree(flags);
             cudaFree(scanout);
             cudaFree(write);
-
-            timer().endGpuTimer();
 
             return len;
         }
