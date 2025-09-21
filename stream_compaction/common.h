@@ -13,6 +13,18 @@
 #define FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define checkCUDAError(msg) checkCUDAErrorFn(msg, FILENAME, __LINE__)
 
+#define CALCULATE_TID(tid) int tid = threadIdx.x + (blockIdx.x * blockDim.x)
+
+#define CALCULATE_TID_AUTO CALCULATE_TID(tid)
+
+#define BLOCK_SIZE 128
+
+#define CALCULATE_BLOCK_THREAD_SIZE(n, block_size, threads_per_block, blocks_per_grid) \
+int threads_per_block = block_size; \
+int blocks_per_grid = (n + threads_per_block - 1) / threads_per_block
+
+#define CALCULATE_BLOCK_THREAD_SIZE_AUTO(n, BLOCK_SIZE) CALCULATE_BLOCK_THREAD_SIZE(n, BLOCK_SIZE, threadsPerBlock, blocksPerGrid)
+
 /**
  * Check for CUDA errors; print and exit if there was a problem.
  */

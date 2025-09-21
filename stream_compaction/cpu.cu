@@ -2,6 +2,7 @@
 #include "cpu.h"
 
 #include "common.h"
+#include <vector>
 
 namespace StreamCompaction {
     namespace CPU {
@@ -17,10 +18,13 @@ namespace StreamCompaction {
          * For performance analysis, this is supposed to be a simple for loop.
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
-        void scan(int n, int *odata, const int *idata) {
-            timer().startCpuTimer();
-            // TODO
-            timer().endCpuTimer();
+        void scan(int n, int *odata, const int *idata, bool timer_enabled) {
+            if (timer_enabled) { timer().startCpuTimer(); }
+            odata[0] = 0;
+            for (int i = 1; i < n; i++) {
+                odata[i] = odata[i-1] + idata[i-1];
+            }
+            if (timer_enabled) { timer().endCpuTimer(); }
         }
 
         /**
@@ -30,9 +34,17 @@ namespace StreamCompaction {
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
             timer().startCpuTimer();
-            // TODO
+            int odata_curr = 0;
+
+            for (int i = 0; i < n; i++) {
+                if ( idata[i] != 0 ) {
+                    odata[odata_curr] = idata[i];
+                    odata_curr++;
+                }
+            }
+
             timer().endCpuTimer();
-            return -1;
+            return odata_curr;
         }
 
         /**
@@ -42,9 +54,23 @@ namespace StreamCompaction {
          */
         int compactWithScan(int n, int *odata, const int *idata) {
             timer().startCpuTimer();
-            // TODO
+            std::vector<int> flags(n, 0);
+            std::vector<int> scanout(n, 0);
+
+            for (int i = 0; i < n; i++) {
+                flags[i] = ( idata[i] == 0 ) ? 0 : 1;
+            }
+
+            scan(n, scanout.data(), flags.data(), false);
+            
+            for (int i = 0; i < n; i++) {
+                if (flags[i] == 1) {
+                    odata[scanout[i]] = idata[i];
+                }
+            }
+
             timer().endCpuTimer();
-            return -1;
+            return scanout[n-1] + flags[n-1];
         }
     }
 }
