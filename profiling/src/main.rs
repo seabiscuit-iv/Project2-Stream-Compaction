@@ -24,7 +24,7 @@ const RESET_ALL: bool = true;
 //     BufferCount = 7,
 // }
 
-const BUFFER_COUNT: usize = 8;
+const BUFFER_COUNT: usize = 9;
 
 const BUFFER_TITLES : [&str; BUFFER_COUNT] = [
     "GPU Scan Naive",
@@ -34,7 +34,8 @@ const BUFFER_TITLES : [&str; BUFFER_COUNT] = [
     "CPU Compaction with Scan",
     "CPU Compaction without Scan",
     "CPU Scan",
-    "GPU Stream Compaction Thrust"
+    "GPU Stream Compaction Thrust",
+    "GPU Scan Thread Efficient"
 ];
 
 
@@ -166,7 +167,7 @@ impl eframe::App for App {
                             Tab::Scan => "scan",
                             Tab::StreamCompaction => "stream_compaction"
                         };
-                        let file_name = format!("../img/{}_{}_old.png", tab, self.block_size);
+                        let file_name = format!("../img/{}_{}_thread_efficient.png", tab, self.block_size);
                         image.save(file_name).unwrap();
                     }
 
