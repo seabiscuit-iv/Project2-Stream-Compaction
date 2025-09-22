@@ -3,6 +3,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <thrust/scan.h>
+#include <thrust/remove.h>
+#include <thrust/functional.h>
 #include "common.h"
 #include "thrust.h"
 
@@ -21,9 +23,6 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-            // TODO use `thrust::exclusive_scan`
-            // example: for device_vectors dv_in and dv_out:
-            // thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
             thrust::device_vector<int> dvec_read(n);
             thrust::device_vector<int> dvec_write(n);
 
@@ -37,6 +36,28 @@ namespace StreamCompaction {
             timer().endGpuTimer();
 
             cudaMemcpy(odata, dvec_write.data().get(), n * sizeof(int), cudaMemcpyDeviceToHost);
+        }
+
+        struct is_zero {
+            __host__ __device__
+            bool operator()(int x) const { return x == 0; }
+        };
+
+        void compact(int n, int *odata, const int *idata) {
+            thrust::device_vector<int> dvec(n);
+
+            cudaMemcpy(dvec.data().get(), idata, n * sizeof(int), cudaMemcpyHostToDevice);
+
+            timer().startGpuTimer();
+
+            auto new_end = thrust::remove_if(dvec.begin(), dvec.end(), is_zero());
+
+            dvec.erase(new_end, dvec.end());
+            cudaDeviceSynchronize();
+
+            timer().endGpuTimer();
+
+            cudaMemcpy(odata, dvec.data().get(), dvec.size() * sizeof(int), cudaMemcpyDeviceToHost);
         }
     }
 }

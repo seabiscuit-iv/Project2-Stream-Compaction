@@ -16,7 +16,7 @@
 #include <cassert>
 
 int SIZE = 1 << 10; // feel free to change the size of array
-bool tests[5] = {true, true, true, true, true};
+bool tests[6] = {true, true, true, true, true, true};
 int blockSize = 128;
 
 bool testing = false;
@@ -32,12 +32,13 @@ void test_gpu_scan_naive() {
     zeroArray(SIZE, d_write.data());
 
     StreamCompaction::CPU::scan(SIZE, h_write.data(), read.data());
-    printElapsedTime("CPU Scan: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    // printElapsedTime("CPU Scan: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     StreamCompaction::Naive::scan(SIZE, d_write.data(), read.data());
-    printElapsedTime("GPU Scan Naive: ", StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    // printElapsedTime("GPU Scan Naive: ", StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     assert(h_write == d_write);
+    printf("passed\n");
 }
 
 void test_gpu_scan_work_efficient() {
@@ -51,12 +52,13 @@ void test_gpu_scan_work_efficient() {
     zeroArray(SIZE, d_write.data());
 
     StreamCompaction::CPU::scan(SIZE, h_write.data(), read.data());
-    printElapsedTime("CPU Scan: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    // printElapsedTime("CPU Scan: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     StreamCompaction::Efficient::scan(SIZE, d_write.data(), read.data());
-    printElapsedTime("GPU Scan Work Efficient: ", StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    // printElapsedTime("GPU Scan Work Efficient: ", StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     assert(h_write == d_write);
+    printf("passed\n");
 }
 
 
@@ -71,12 +73,13 @@ void test_gpu_stream_compaction_work_efficient() {
     zeroArray(SIZE, d_write.data());
 
     StreamCompaction::CPU::compactWithScan(SIZE, h_write.data(), read.data());
-    printElapsedTime("CPU Compaction: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    // printElapsedTime("CPU Compaction: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     StreamCompaction::Efficient::compact(SIZE, d_write.data(), read.data());
-    printElapsedTime("GPU Compaction Work Efficient: ", StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    // printElapsedTime("GPU Compaction Work Efficient: ", StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     assert(h_write == d_write);
+    printf("passed\n");
 }
 
 
@@ -91,12 +94,13 @@ void test_gpu_scan_thrust() {
     zeroArray(SIZE, d_write.data());
 
     StreamCompaction::CPU::scan(SIZE, h_write.data(), read.data());
-    printElapsedTime("CPU Scan: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    // printElapsedTime("CPU Scan: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     StreamCompaction::Thrust::scan(SIZE, d_write.data(), read.data());
-    printElapsedTime("GPU Thrust Scan: ", StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    // printElapsedTime("GPU Thrust Scan: ", StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     assert(h_write == d_write);
+    printf("passed\n");
 }
 
 void test_cpu_stream_compaction() {
@@ -116,8 +120,29 @@ void test_cpu_stream_compaction() {
     // printElapsedTime("CPU Compaction without Scan: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     assert(a_write == b_write);
+    printf("passed\n");
 }
 
+
+void test_gpu_stream_compaction_thrust() {
+    std::vector<int> read(SIZE, 0);
+    std::vector<int> a_write(SIZE, 0);
+    std::vector<int> b_write(SIZE, 0);
+
+    genArray(SIZE - 1, read.data(), 50);
+    read[SIZE - 1] = 0;
+    zeroArray(SIZE, a_write.data());
+    zeroArray(SIZE, b_write.data());
+
+    StreamCompaction::CPU::compactWithScan(SIZE, a_write.data(), read.data());
+    // printElapsedTime("CPU Compaction with Scan: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+
+    StreamCompaction::Thrust::compact(SIZE, b_write.data(), read.data());
+    // printElapsedTime("CPU Compaction without Scan: ", StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+
+    assert(a_write == b_write);
+    printf("passed\n");
+}
 
 
 void process_command_line_args(int argc, char* argv[]) {
@@ -138,6 +163,7 @@ void process_command_line_args(int argc, char* argv[]) {
             tests[2] = false;
             tests[3] = false;
             tests[4] = false;
+            tests[5] = false;
             if ( value == "CPU_STREAM_COMPACT" ) {
                 tests[0] = true;
             } 
@@ -153,15 +179,19 @@ void process_command_line_args(int argc, char* argv[]) {
             else if ( value == "GPU_SCAN_THRUST" ) {
                 tests[4] = true;
             }
+            else if ( value == "GPU_STREAM_COMPACT_THRUST" ) {
+                tests[5] = true;
+            }
             else if ( value == "ALL" ) {
                 tests[0] = true;
                 tests[1] = true;
                 tests[2] = true;
                 tests[3] = true;
                 tests[4] = true;
+                tests[5] = true;
             }
             else {
-                printf("ERROR: incorrect parameter for flag -tests (CPU_STREAM_COMPACT, GPU_SCAN_NAIVE, GPU_SCAN_EFFICIENT, GPU_STREAM_COMPACT_EFFICIENT, GPU_SCAN_THRUST, ALL)\n");
+                printf("ERROR: incorrect parameter for flag -tests (CPU_STREAM_COMPACT, GPU_SCAN_NAIVE, GPU_SCAN_EFFICIENT, GPU_STREAM_COMPACT_EFFICIENT, GPU_SCAN_THRUST, GPU_STREAM_COMPACT_THRUST, ALL)\n");
                 std::cout.flush();
                 exit(1);
             }
@@ -207,6 +237,7 @@ int main(int argc, char* argv[]) {
         if (tests[2]) test_gpu_scan_work_efficient();
         if (tests[3]) test_gpu_stream_compaction_work_efficient();
         if (tests[4]) test_gpu_scan_thrust();
+        if (tests[5]) test_gpu_stream_compaction_thrust();
     }
     else { // profiling
         std::vector<int> read(SIZE, 0);
@@ -249,6 +280,11 @@ int main(int argc, char* argv[]) {
         zeroArray(SIZE, write.data());
         StreamCompaction::Thrust::scan(SIZE, write.data(), read.data());
         printElapsedTime("GPU Scan Thrust: ", StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+
+        // GPU Stream Compaction Thrust
+        zeroArray(SIZE, write.data());
+        StreamCompaction::Thrust::compact(SIZE, write.data(), read.data());
+        printElapsedTime("GPU Stream Compaction Thrust: ", StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
     }
 }

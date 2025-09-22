@@ -24,7 +24,7 @@ const RESET_ALL: bool = true;
 //     BufferCount = 7,
 // }
 
-const BUFFER_COUNT: usize = 7;
+const BUFFER_COUNT: usize = 8;
 
 const BUFFER_TITLES : [&str; BUFFER_COUNT] = [
     "GPU Scan Naive",
@@ -33,7 +33,8 @@ const BUFFER_TITLES : [&str; BUFFER_COUNT] = [
     "GPU Scan Thrust",
     "CPU Compaction with Scan",
     "CPU Compaction without Scan",
-    "CPU Scan"
+    "CPU Scan",
+    "GPU Stream Compaction Thrust"
 ];
 
 
