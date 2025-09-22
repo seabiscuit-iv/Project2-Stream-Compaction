@@ -1,4 +1,4 @@
-use std::{array, fs::{File, OpenOptions}, io::{self, BufRead}, sync::{Arc, RwLock}, thread};
+use std::{fs::{File, OpenOptions}, io::{self, BufRead}, sync::{Arc, RwLock}, thread};
 
 use eframe::*;
 use egui::*;

@@ -7,10 +7,21 @@ CUDA Stream Compaction
   * [LinkedIn](https://www.linkedin.com/in/saahil-g), [personal website](https://www.saahil-gupta.com)
 * Tested on: Windows 11 10.0.26100, AMD Ryzen 9 7940HS @ 4.0GHz 32GB, RTX 4060 Laptop GPU 8GB
 
+## Table of Contents
+
+- [Performance Analysis](#performance-analysis)
+  - [Basic](#basic)
+    - [Scan](#scan)
+    - [Stream Compaction](#stream-compaction)
+  - [Thread](#thread)
+    - [Scan](#scan-1)
+    - [Stream Compaction](#stream-compaction-1)
+
 ## Performance Analysis
 
-### Scan
+### Basic
 
+#### Scan
 ---
 
 <div align="center">
@@ -27,8 +38,7 @@ CUDA Stream Compaction
 
 </div>
 
-### Stream Compaction
-
+#### Stream Compaction
 ---
 
 <div align="center">
@@ -44,3 +54,12 @@ CUDA Stream Compaction
 </table>
 
 </div>
+
+### Thread Efficiency
+
+#### Scan
+---
+
+
+#### Stream Compaction
+---
