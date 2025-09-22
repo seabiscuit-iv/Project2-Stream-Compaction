@@ -24,24 +24,19 @@ namespace StreamCompaction {
             // TODO use `thrust::exclusive_scan`
             // example: for device_vectors dv_in and dv_out:
             // thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
-            int* d_read;
-            int* d_write;
+            thrust::device_vector<int> dvec_read(n);
+            thrust::device_vector<int> dvec_write(n);
 
-            cudaMalloc((void**)&d_read, n * sizeof(int));
-            cudaMalloc((void**)&d_write, n * sizeof(int));
-
-            cudaMemcpy(d_read, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+            cudaMemcpy(dvec_read.data().get(), idata, n * sizeof(int), cudaMemcpyHostToDevice);
 
             timer().startGpuTimer();
 
-            thrust::exclusive_scan(DPTR(d_read), DPTR(d_read + n), DPTR(d_write));
+            thrust::exclusive_scan(dvec_read.begin(), dvec_read.end(), dvec_write.begin());
+            cudaDeviceSynchronize();
 
             timer().endGpuTimer();
 
-            cudaMemcpy(odata, d_write, n * sizeof(int), cudaMemcpyDeviceToHost);
-
-            cudaFree(d_read);
-            cudaFree(d_write);
+            cudaMemcpy(odata, dvec_write.data().get(), n * sizeof(int), cudaMemcpyDeviceToHost);
         }
     }
 }

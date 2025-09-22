@@ -19,11 +19,11 @@
 
 #define BLOCK_SIZE 128
 
-#define CALCULATE_BLOCK_THREAD_SIZE(n, block_size, threads_per_block, blocks_per_grid) \
+#define CALCULATE_BLOCK_THREAD_SIZE(n, block_size, blocks_per_grid, threads_per_block) \
 int threads_per_block = block_size; \
 int blocks_per_grid = (n + threads_per_block - 1) / threads_per_block
 
-#define CALCULATE_BLOCK_THREAD_SIZE_AUTO(n, BLOCK_SIZE) CALCULATE_BLOCK_THREAD_SIZE(n, BLOCK_SIZE, threadsPerBlock, blocksPerGrid)
+#define CALCULATE_BLOCK_THREAD_SIZE_AUTO(n, BLOCK_SIZE) CALCULATE_BLOCK_THREAD_SIZE(n, BLOCK_SIZE, blocksPerGrid, threadsPerBlock)
 
 /**
  * Check for CUDA errors; print and exit if there was a problem.

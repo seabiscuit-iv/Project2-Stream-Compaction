@@ -39,6 +39,7 @@ namespace StreamCompaction {
 
             if ( tid == 0 ) {
                 write[tid] = 0;
+                return;
             } 
 
             write[tid] = read[tid - 1];
@@ -48,7 +49,6 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
             int* d_a;
             int* d_b;
 
@@ -60,6 +60,8 @@ namespace StreamCompaction {
             cudaMemcpy(d_a, idata, n * sizeof(int), cudaMemcpyHostToDevice);
 
             checkCUDAError("Naive::Scan cudaMemcpy failed");
+
+            timer().startGpuTimer();
 
             int num_iterations = ilog2ceil(n);
 
@@ -78,16 +80,16 @@ namespace StreamCompaction {
             int* d_write = num_iterations % 2 == 0 ? d_b : d_a;
 
             InclusiveToExclusiveShift<<<blocksPerGrid, threadsPerBlock>>>(n, d_read, d_write);
+            
+            cudaDeviceSynchronize();
+
+            timer().endGpuTimer();
 
             cudaMemcpy(odata, d_write, n * sizeof(int), cudaMemcpyDeviceToHost);
             checkCUDAError("Naive::Scan cudaMemcpy failed");
 
-            cudaDeviceSynchronize();
-
             cudaFree(d_a);
             cudaFree(d_b);
-
-            timer().endGpuTimer();
         }
     }
 }

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(cis5650_stream_compaction_test LANGUAGES CUDA CXX)
 
+enable_testing()
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -42,5 +44,6 @@ source_group(Headers FILES ${headers})
 source_group(Sources FILES ${sources})
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${headers})
+add_test(NAME AllTests COMMAND ${CMAKE_PROJECT_NAME})
 target_link_libraries(${CMAKE_PROJECT_NAME} stream_compaction)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME})

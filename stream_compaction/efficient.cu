@@ -68,10 +68,11 @@ namespace StreamCompaction {
                 DownSweep<<<blocksPerGrid_new, threadsPerBlock_new>>>(n, data, k);
             }
 
+            cudaDeviceSynchronize();
+
             if (timer_enabled) timer().endGpuTimer();
 
             cudaMemcpy(odata, data, og_n * sizeof(int), cudaMemcpyDeviceToHost);
-            cudaDeviceSynchronize();
 
             cudaFree(data);
         }
@@ -111,11 +112,11 @@ namespace StreamCompaction {
             cudaMalloc((void**)&write, len * sizeof(int));
 
             StreamCompaction::Common::kernScatter<<<blocksPerGrid, threadsPerBlock>>>(n, write, read, flags, scanout);
+            cudaDeviceSynchronize();
 
             timer().endGpuTimer();
 
             cudaMemcpy(odata, write, len * sizeof(int), cudaMemcpyDeviceToHost);
-            cudaDeviceSynchronize();
 
             cudaFree(read);
             cudaFree(flags);
