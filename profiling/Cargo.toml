@@ -9,3 +9,4 @@ tokio = { version = "1.47.1", features = ["full"] }
 eframe = "0.30.0"
 egui = "0.30.0"
 egui_plot = "0.30.0"
+screenshots = "0.8.10"

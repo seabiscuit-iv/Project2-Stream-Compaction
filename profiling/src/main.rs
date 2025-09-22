@@ -4,24 +4,37 @@ use eframe::*;
 use egui::*;
 use egui_plot::*;
 use regex::Regex;
+use screenshots::Screen;
 use tokio::{
     io::AsyncBufReadExt
 };
 use std::io::Write;
 
+const BLOCK_SIZES: [u32; 4] = [128, 256, 512, 1024];
+const RESET_ALL: bool = true;
 
 fn main() -> Result<(), eframe::Error> {
     let options = NativeOptions {  
-        viewport: ViewportBuilder::default().with_inner_size(vec2(1200.0, 700.0)).with_position(pos2(30.0,  30.0)),
+        viewport: ViewportBuilder::default().with_fullscreen(true),
         ..Default::default()
     };
 
-    eframe::run_native("App", options, 
-        Box::new(|_| Ok(Box::new(App::new())))
-    )
+    for i in BLOCK_SIZES {
+        if RESET_ALL {
+            File::create(format!("profile_output/output_{}.txt", i)).unwrap();
+        }
+        if let Err(x) = 
+            eframe::run_native(&format!("Project 2: Stream Compaction Profiler [Block Size: {i}]"), options.clone(), 
+        Box::new(|_| Ok(Box::new(App::new(i))))
+            )    
+        {
+            return Err(x);
+        }
+    }
+
+    Ok(())
 }
 
-// [64, 128, 256, 512, 1024]
 pub struct App {
     current: Tab,
     cpu_stream_compact: Arc<RwLock<Vec<(f32, u32)>>>,
@@ -29,23 +42,25 @@ pub struct App {
     gpu_scan_efficient: Arc<RwLock<Vec<(f32, u32)>>>,
     gpu_stream_compact_efficient: Arc<RwLock<Vec<(f32, u32)>>>,
     gpu_scan_thrust: Arc<RwLock<Vec<(f32, u32)>>>,
+    block_size: u32
 }
 
 impl App {
-    pub fn new() -> Self {
-        let plots = get_plots();
+    pub fn new(block_size: u32) -> Self {
+        let plots = get_plots(block_size);
 
         Self { current: Tab::Scan, 
             cpu_stream_compact: plots.0, 
             gpu_scan_naive: plots.1, 
             gpu_scan_efficient: plots.2,
             gpu_stream_compact_efficient: plots.3,
-            gpu_scan_thrust: plots.4
+            gpu_scan_thrust: plots.4,
+            block_size
         }
     }
 }
 
-fn get_plots() -> (Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>) {
+fn get_plots(block_size: u32) -> (Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>) {
     let cpu_stream_compact = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
     let gpu_scan_naive = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
     let gpu_scan_efficient = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
@@ -62,7 +77,7 @@ fn get_plots() -> (Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, A
     thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
 
-        let file = File::open("output.txt").expect("Unable to open output file");
+        let file = File::open(format!("profile_output/output_{}.txt", block_size)).expect("Unable to open output file");
         let reader = io::BufReader::new(file);
 
         let mut prefetch_data: Vec<(f32, f32, f32, f32, f32, u32)> = Vec::new();
@@ -106,9 +121,9 @@ fn get_plots() -> (Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, A
                 let mut file = file.write(true)   // open for writing
                     .append(true)  // append to the end instead of overwriting
                     .create(true)  // create if it doesn’t exist
-                    .open("output.txt").expect("Unable to open output file");
+                    .open(format!("profile_output/output_{}.txt", block_size)).expect("Unable to open output file");
 
-                let value = run_tests(size, 1024).await;
+                let value = run_tests(size, block_size).await;
                 cpu_stream_compact_move.write().unwrap().push((value.0, i));
                 gpu_scan_naive_move.write().unwrap().push((value.1, i));
                 gpu_scan_efficient_move.write().unwrap().push((value.2, i));
@@ -134,10 +149,29 @@ enum Tab {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("tab_bar").show(ctx, |ui| {
+            ui.add_space(2.0); // top padding
             ui.horizontal_wrapped(|ui| {
                 ui.selectable_value(&mut self.current, Tab::Scan, "Scan");
                 ui.selectable_value(&mut self.current, Tab::StreamCompaction, "StreamCompaction");
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("Screenshot").clicked() {
+                        let screen = Screen::from_point(0, 0).unwrap();
+                        let image = screen.capture().unwrap();
+                        let tab = match self.current {
+                            Tab::Scan => "scan",
+                            Tab::StreamCompaction => "stream_compaction"
+                        };
+                        let file_name = format!("../img/{}_{}.png", tab, self.block_size);
+                        image.save(file_name).unwrap();
+                    }
+
+                    if ui.button("Reset").clicked() {
+                        File::create(format!("profile_output/output_{}.txt", self.block_size)).unwrap();
+                    }
+                });
             });
+            ui.add_space(2.0); // top padding
         });
 
         
