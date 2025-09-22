@@ -14,8 +14,8 @@ CUDA Stream Compaction
     - [Scan](#scan)
     - [Stream Compaction](#stream-compaction)
   - [Thread](#thread)
-    - [Scan](#scan-1)
-    - [Stream Compaction](#stream-compaction-1)
+    - [Thread-Efficient Scan](#thread-efficient-scan)
+    - [Thread-Efficient Stream Compaction](#thread-efficient-stream-compaction)
 
 ## Performance Analysis
 
@@ -74,7 +74,7 @@ CUDA Stream Compaction
 
 ### Thread Efficiency
 
-### Scan
+### Thread-Efficient Scan
 
 
-### Stream Compaction
+### Thread-Efficient Stream Compaction
