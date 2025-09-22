@@ -25,21 +25,21 @@ CUDA Stream Compaction
 
 <div align="center">
 
-![scan_256_block_size](img/scan_256.png)
+![scan_256_block_size](img/scan_256_old.png)
 <em>Block Size 256</em>
 
 <table>
   <tr>
     <td>
-      <img src="img/scan_128.png" width="400">
+      <img src="img/scan_128_old.png" width="400">
       <em>128</em>
     </td>
     <td>
-      <img src="img/scan_512.png" width="400">
+      <img src="img/scan_512_old.png" width="400">
       <em>512</em>
     </td>
     <td>
-      <img src="img/scan_1024.png" width="400">
+      <img src="img/scan_1024_old.png" width="400">
       <em>1024</em>
     </td>
   </tr>
@@ -51,20 +51,20 @@ CUDA Stream Compaction
 
 <div align="center">
 
-![compact_256_block_size](img/stream_compaction_256.png)
+![compact_256_block_size](img/stream_compaction_256_old.png)
 <em>Block Size 256</em>
 
 <table>
   <tr>
-    <td><img src="img/stream_compaction_128.png" width="400">
+    <td><img src="img/stream_compaction_128_old.png" width="400">
       <em>128</em>
     </td>
     <td>
-      <img src="img/stream_compaction_512.png" width="400">
+      <img src="img/stream_compaction_512_old.png" width="400">
       <em>512</em>
     </td>
     <td>
-      <img src="img/stream_compaction_1024.png" width="400">
+      <img src="img/stream_compaction_1024_old.png" width="400">
       <em>1024</em>
     </td>
   </tr>
