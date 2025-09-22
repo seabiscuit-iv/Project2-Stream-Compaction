@@ -1,4 +1,4 @@
-use std::{fs::{File, OpenOptions}, io::{self, BufRead}, sync::{Arc, RwLock}, thread};
+use std::{array, fs::{File, OpenOptions}, io::{self, BufRead}, sync::{Arc, RwLock}, thread};
 
 use eframe::*;
 use egui::*;
@@ -12,6 +12,30 @@ use std::io::Write;
 
 const BLOCK_SIZES: [u32; 4] = [128, 256, 512, 1024];
 const RESET_ALL: bool = true;
+
+// enum Buffer {
+//     CPUStreamCompactionWithScan = 0,
+//     CPUStreamCompactionWithoutScan = 1,
+//     GPUScanNaive = 2,
+//     GPUScanEfficient = 3,
+//     GPUStreamCompactionEfficient = 4,
+//     GPUScanThrust = 5,
+//     CPUScan = 6,
+//     BufferCount = 7,
+// }
+
+const BUFFER_COUNT: usize = 7;
+
+const BUFFER_TITLES : [&str; BUFFER_COUNT] = [
+    "GPU Scan Naive",
+    "GPU Scan Work Efficient",
+    "GPU Stream Compaction Work Efficient",
+    "GPU Scan Thrust",
+    "CPU Compaction with Scan",
+    "CPU Compaction without Scan",
+    "CPU Scan"
+];
+
 
 fn main() -> Result<(), eframe::Error> {
     let options = NativeOptions {  
@@ -37,13 +61,7 @@ fn main() -> Result<(), eframe::Error> {
 
 pub struct App {
     current: Tab,
-    cpu_stream_compact_with_scan: Arc<RwLock<Vec<(f32, u32)>>>,
-    cpu_stream_compact_without_scan: Arc<RwLock<Vec<(f32, u32)>>>,
-    gpu_scan_naive: Arc<RwLock<Vec<(f32, u32)>>>,
-    gpu_scan_efficient: Arc<RwLock<Vec<(f32, u32)>>>,
-    gpu_stream_compact_efficient: Arc<RwLock<Vec<(f32, u32)>>>,
-    gpu_scan_thrust: Arc<RwLock<Vec<(f32, u32)>>>,
-    cpu_scan: Arc<RwLock<Vec<(f32, u32)>>>,
+    buffers: [Arc<RwLock<Vec<(f32, u32)>>>; BUFFER_COUNT],
     block_size: u32
 }
 
@@ -52,35 +70,16 @@ impl App {
         let plots = get_plots(block_size);
 
         Self { current: Tab::Scan, 
-            cpu_stream_compact_with_scan: plots.0, 
-            cpu_stream_compact_without_scan: plots.1,
-            gpu_scan_naive: plots.2, 
-            gpu_scan_efficient: plots.3,
-            gpu_stream_compact_efficient: plots.4,
-            gpu_scan_thrust: plots.5,
-            cpu_scan: plots.6,
+            buffers: plots,
             block_size
         }
     }
 }
 
-fn get_plots(block_size: u32) -> (Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>) {
-    let cpu_stream_compact_with_scan = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
-    let cpu_stream_compact_without_scan = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
-    let gpu_scan_naive: Arc<RwLock<Vec<(f32, u32)>>> = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
-    let gpu_scan_efficient = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
-    let gpu_stream_compact_efficient = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
-    let gpu_scan_thrust = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
-    let cpu_scan = Arc::new(RwLock::new(Vec::<(f32, u32)>::new()));
+fn get_plots(block_size: u32) -> [Arc<RwLock<Vec<(f32, u32)>>>; BUFFER_COUNT] {
+    let buffers: [_; BUFFER_COUNT] = array::from_fn(|_| Arc::new(RwLock::new(Vec::<(f32, u32)>::new())));
 
-    let cpu_stream_compact_with_scan_clone = cpu_stream_compact_with_scan.clone();
-    let cpu_stream_compact_without_scan_clone = cpu_stream_compact_without_scan.clone();
-    let gpu_scan_naive_clone = gpu_scan_naive.clone();
-    let gpu_scan_efficient_clone = gpu_scan_efficient.clone();
-    let gpu_stream_compact_efficient_clone = gpu_stream_compact_efficient.clone();
-    let gpu_scan_thrust_clone = gpu_scan_thrust.clone();
-    let cpu_scan_clone = cpu_scan.clone();
-
+    let buffers_clone: [_; BUFFER_COUNT] = array::from_fn(|i| buffers[i].clone());
 
     thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
@@ -88,47 +87,35 @@ fn get_plots(block_size: u32) -> (Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(
         let file = File::open(format!("profile_output/output_{}.txt", block_size)).expect("Unable to open output file");
         let reader = io::BufReader::new(file);
 
-        let mut prefetch_data: Vec<(f32, f32, f32, f32, f32, f32, f32, u32)> = Vec::new();
+        let mut prefetch_data: Vec<([f32; BUFFER_COUNT], u32)> = Vec::new();
 
         for line in reader.lines() {
             let line = line.unwrap();
             let mut elems = line.split_whitespace();
-            let cpu_sc_ms: f32 = elems.next().unwrap().parse().unwrap();
-            let cpu_sc_wout_ms: f32 = elems.next().unwrap().parse().unwrap();
-            let gpu_scan_ms: f32 = elems.next().unwrap().parse().unwrap();
-            let gpu_scan_efficient_ms: f32 = elems.next().unwrap().parse().unwrap();
-            let gpu_sc_efficient_ms: f32 = elems.next().unwrap().parse().unwrap();
-            let gpu_scan_thrust_ms: f32 = elems.next().unwrap().parse().unwrap();
-            let cpu_scan_ms: f32 = elems.next().unwrap().parse().unwrap();
-            let size: u32 = elems.next().unwrap().parse().unwrap();
 
-            prefetch_data.push((cpu_sc_ms, cpu_sc_wout_ms, gpu_scan_ms, gpu_scan_efficient_ms, gpu_sc_efficient_ms, gpu_scan_thrust_ms, cpu_scan_ms, size));
+            let mut values = [0.0; BUFFER_COUNT];
+
+            for i in 0..BUFFER_COUNT {
+                values[i] = elems.next().unwrap().parse().unwrap();
+            }
+
+            let size: u32 = elems.next().unwrap().parse().unwrap();
+            prefetch_data.push((values, size));
         }
 
         for i in 5..=27 {
             let size = 1 << i;
 
-            let prefetch = prefetch_data.iter().find(|x| x.7 == i);
+            let prefetch = prefetch_data.iter().find(|x| x.1 == i);
 
             if let Some(x) = prefetch {
-                cpu_stream_compact_with_scan_clone.write().unwrap().push((x.0, x.7));
-                cpu_stream_compact_without_scan_clone.write().unwrap().push((x.1, x.7));
-                gpu_scan_naive_clone.write().unwrap().push((x.2, x.7));
-                gpu_scan_efficient_clone.write().unwrap().push((x.3, x.7));
-                gpu_stream_compact_efficient_clone.write().unwrap().push((x.4, x.7));
-                gpu_scan_thrust_clone.write().unwrap().push((x.5, x.7));
-                cpu_scan_clone.write().unwrap().push((x.6, x.7));
-
+                for i in 0..(BUFFER_COUNT) {
+                    buffers_clone[i].write().unwrap().push((x.0[i], x.1));
+                }
                 continue;
             }
 
-            let cpu_stream_compact_with_scan_move = cpu_stream_compact_with_scan_clone.clone();
-            let cpu_stream_compact_without_scan_move = cpu_stream_compact_without_scan_clone.clone();
-            let gpu_scan_naive_move = gpu_scan_naive_clone.clone();
-            let gpu_scan_efficient_move = gpu_scan_efficient_clone.clone();
-            let gpu_stream_compact_efficient_move = gpu_stream_compact_efficient_clone.clone();
-            let gpu_scan_thrust_move = gpu_scan_thrust_clone.clone();
-            let cpu_scan_move = cpu_scan_clone.clone();
+            let buffers_move : [_; BUFFER_COUNT] = array::from_fn(|i| buffers_clone[i].clone());
 
             rt.block_on(async move {
                 let mut file = OpenOptions::new();
@@ -138,19 +125,16 @@ fn get_plots(block_size: u32) -> (Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(
                     .open(format!("profile_output/output_{}.txt", block_size)).expect("Unable to open output file");
 
                 let value = run_tests(size, block_size).await;
-                cpu_stream_compact_with_scan_move.write().unwrap().push((value.0, i));
-                cpu_stream_compact_without_scan_move.write().unwrap().push((value.1, i));
-                gpu_scan_naive_move.write().unwrap().push((value.2, i));
-                gpu_scan_efficient_move.write().unwrap().push((value.3, i));
-                gpu_stream_compact_efficient_move.write().unwrap().push((value.4, i));
-                gpu_scan_thrust_move.write().unwrap().push((value.5, i));
-                cpu_scan_move.write().unwrap().push((value.6, i));
-                writeln!(file, "{} {} {} {} {} {} {} {}", value.0, value.1, value.2, value.3, value.4, value.5, value.6, i).unwrap();
+                for c in 0..(BUFFER_COUNT) {
+                    buffers_move[c].write().unwrap().push((value[c], i));
+                    write!(file, "{} ", value[c]).unwrap();
+                }
+                writeln!(file, "{}", i).unwrap();
             });
         }
     });
 
-    (cpu_stream_compact_with_scan, cpu_stream_compact_without_scan, gpu_scan_naive, gpu_scan_efficient, gpu_stream_compact_efficient, gpu_scan_thrust, cpu_scan)
+    buffers
 }
 
 
@@ -161,6 +145,9 @@ enum Tab {
     Scan,
     StreamCompaction,
 }
+
+const COLORS: [Color32; 6] = [Color32::RED, Color32::BLUE, Color32::GREEN, Color32::ORANGE, Color32::WHITE, Color32::YELLOW];
+
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -190,15 +177,8 @@ impl eframe::App for App {
             ui.add_space(2.0); // top padding
         });
 
-        
-        let cpu_stream_compact_with_scan = self.cpu_stream_compact_with_scan.read().unwrap();
-        let cpu_stream_compact_without_scan = self.cpu_stream_compact_without_scan.read().unwrap();
-        let gpu_scan_naive = self.gpu_scan_naive.read().unwrap();
-        let gpu_scan_efficient = self.gpu_scan_efficient.read().unwrap();
-        let gpu_stream_compact_efficient = self.gpu_stream_compact_efficient.read().unwrap();
-        let gpu_scan_thrust = self.gpu_scan_thrust.read().unwrap();
-        let cpu_scan = self.cpu_scan.read().unwrap();
-        
+        let buffers: [std::sync::RwLockReadGuard<'_, Vec<(f32, u32)>>; BUFFER_COUNT] = array::from_fn(|i| self.buffers[i].read().unwrap());
+
         egui::CentralPanel::default().show(ctx, |ui| {
             egui_plot::Plot::new("Plot")
                 .allow_drag(false)
@@ -216,54 +196,22 @@ impl eframe::App for App {
                 .x_axis_label("Array Size (1 << x)")
                 .legend(Legend::default().position(Corner::LeftTop))
                 .show(ui, |plot_ui|  {
-                    match self.current {
-                        Tab::Scan => {
-                            plot_ui.line(
-                                Line::new(gpu_scan_naive.iter().map(|(ms, size)|{
-                                    [*size as f64, *ms as f64]
-                                }).collect::<Vec<[f64; 2]>>()).color(Color32::RED).name("GPU Scan Naive")
-                            );
+                    let identifier = match self.current {
+                        Tab::Scan => |x: &str| x.contains("Scan") && !x.contains("Compaction"),
+                        Tab::StreamCompaction => |x: &str| x.contains("Compaction")
+                    };
 
+                    buffers.iter()
+                        .enumerate()
+                        .filter(|(i, _)| identifier(BUFFER_TITLES[*i]))
+                        .enumerate()
+                        .for_each(|(c, (i, buf))| {
                             plot_ui.line(
-                                Line::new(gpu_scan_efficient.iter().map(|(ms, size)|{
+                                Line::new(buf.iter().map(|(ms, size)|{
                                     [*size as f64, *ms as f64]
-                                }).collect::<Vec<[f64; 2]>>()).color(Color32::BLUE).name("GPU Scan Efficient")
+                                }).collect::<Vec<[f64; 2]>>()).color(COLORS[c]).name(BUFFER_TITLES[i])
                             );
-
-                            plot_ui.line(
-                                Line::new(gpu_scan_thrust.iter().map(|(ms, size)|{
-                                    [*size as f64, *ms as f64]
-                                }).collect::<Vec<[f64; 2]>>()).color(Color32::GREEN).name("GPU Scan Thrust")
-                            );
-
-                            plot_ui.line(
-                                Line::new(cpu_scan.iter().map(|(ms, size)|{
-                                    [*size as f64, *ms as f64]
-                                }).collect::<Vec<[f64; 2]>>()).color(Color32::ORANGE).name("CPU Scan")
-                            );
-                        },
-                        Tab::StreamCompaction => {
-                            plot_ui.line(
-                                Line::new(gpu_stream_compact_efficient.iter().map(|(ms, size)|{
-                                    [*size as f64, *ms as f64]
-                                }).collect::<Vec<[f64; 2]>>()).color(Color32::RED).name("GPU Stream Compaction Efficient")
-                            );
-
-                            plot_ui.line(
-                                Line::new(cpu_stream_compact_with_scan.iter().map(|(ms, size)|{
-                                    [*size as f64, *ms as f64]
-                                }).collect::<Vec<[f64; 2]>>()).color(Color32::BLUE).name("CPU Stream Compaction With Scan")
-                            );
-
-                            plot_ui.line(
-                                Line::new(cpu_stream_compact_without_scan.iter().map(|(ms, size)|{
-                                    [*size as f64, *ms as f64]
-                                }).collect::<Vec<[f64; 2]>>()).color(Color32::GREEN).name("CPU Stream Compaction Without Scan")
-                            );
-                        }
-                    }
-
-                    
+                        }); 
                 });
         });
 
@@ -271,7 +219,7 @@ impl eframe::App for App {
     }
 }
 
-async fn run_tests(size: u32, block_size: u32) -> (f32, f32, f32, f32, f32, f32, f32) {
+async fn run_tests(size: u32, block_size: u32) -> [f32; BUFFER_COUNT] {
     let mut cuda = tokio::process::Command::new("../build/bin/Release/cis5650_stream_compaction_test.exe")
         .current_dir("../")
         .arg("-size")
@@ -285,13 +233,7 @@ async fn run_tests(size: u32, block_size: u32) -> (f32, f32, f32, f32, f32, f32,
     let stdout = cuda.stdout.take().expect("No stdout captured");
     let mut reader = tokio::io::BufReader::new(stdout).lines();
 
-    let mut cpu_stream_compact_with_scan: f32 = -1.0;
-    let mut cpu_stream_compact_without_scan: f32 = -1.0;
-    let mut gpu_scan_naive: f32 = -1.0;
-    let mut gpu_scan_efficient: f32 = -1.0;
-    let mut gpu_stream_compact_efficient: f32 = -1.0;
-    let mut gpu_scan_thrust: f32 = -1.0;
-    let mut cpu_scan: f32 = -1.0;
+    let mut values = [0.0_f32; BUFFER_COUNT];
 
     // Spawn task to print stdout
     while let Ok(Some(line)) = reader.next_line().await {
@@ -301,20 +243,22 @@ async fn run_tests(size: u32, block_size: u32) -> (f32, f32, f32, f32, f32, f32,
 
         let re = Regex::new(r"^([^:]+):.*?([0-9.]+)ms").unwrap();
         if let Some(caps) = re.captures(&line) {
-            match &caps[1] {
-                "CPU Compaction with Scan" => cpu_stream_compact_with_scan = caps[2].parse().unwrap(),
-                "CPU Compaction without Scan" => cpu_stream_compact_without_scan = caps[2].parse().unwrap(),
-                "CPU Scan" => cpu_scan = caps[2].parse().unwrap(),
-                "GPU Scan Naive" => gpu_scan_naive = caps[2].parse().unwrap(),
-                "GPU Scan Work Efficient" => gpu_scan_efficient = caps[2].parse().unwrap(),
-                "GPU Stream Compaction Work Efficient" => gpu_stream_compact_efficient = caps[2].parse().unwrap(),
-                "GPU Scan Thrust" => gpu_scan_thrust = caps[2].parse().unwrap(),
-                _ => println!("Unaccounted for string: {}", &caps[1])
+            let mut found = false;
+            for (i, title) in BUFFER_TITLES.iter().enumerate() {
+                if caps[1] == **title {
+                    values[i] = caps[2].parse().unwrap();
+                    found = true;
+                    break;
+                }
+            }
+
+            if !found {
+                println!("{} not found in title", &caps[1]);
             }
         } else {
             println!("{} not captured", line);
         }
     }
 
-    return (cpu_stream_compact_with_scan, cpu_stream_compact_without_scan, gpu_scan_naive, gpu_scan_efficient, gpu_stream_compact_efficient, gpu_scan_thrust, cpu_scan);
+    return values;
 }
