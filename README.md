@@ -9,3 +9,38 @@ CUDA Stream Compaction
 
 ## Performance Analysis
 
+### Scan
+
+---
+
+<div align="center">
+
+![scan_256_block_size](img/scan_256.png)
+
+<table>
+  <tr>
+    <td><img src="img/scan_128.png" width="400"></td>
+    <td><img src="img/scan_512.png" width="400"></td>
+    <td><img src="img/scan_1024.png" width="400"></td>
+  </tr>
+</table>
+
+</div>
+
+### Stream Compaction
+
+---
+
+<div align="center">
+
+![compact_256_block_size](img/compact_256.png)
+
+<table>
+  <tr>
+    <td><img src="img/compact_128.png" width="400"></td>
+    <td><img src="img/compact_512.png" width="400"></td>
+    <td><img src="img/compact_1024.png" width="400"></td>
+  </tr>
+</table>
+
+</div>
