@@ -21,7 +21,7 @@ CUDA Stream Compaction
 
 ### Basic
 
-#### Scan
+### Scan
 
 <div align="center">
 
@@ -37,7 +37,7 @@ CUDA Stream Compaction
 
 </div>
 
-#### Stream Compaction
+### Stream Compaction
 
 <div align="center">
 
@@ -55,7 +55,7 @@ CUDA Stream Compaction
 
 ### Thread Efficiency
 
-#### Scan
+### Scan
 
 
-#### Stream Compaction
+### Stream Compaction
