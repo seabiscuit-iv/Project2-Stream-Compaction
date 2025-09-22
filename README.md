@@ -42,12 +42,21 @@ CUDA Stream Compaction
 <div align="center">
 
 ![compact_256_block_size](img/compact_256.png)
+<em>Block Size 256</em>
 
 <table>
   <tr>
-    <td><img src="img/compact_128.png" width="400"></td>
-    <td><img src="img/compact_512.png" width="400"></td>
-    <td><img src="img/compact_1024.png" width="400"></td>
+    <td><img src="img/compact_128.png" width="400">
+      <em>128</em>
+    </td>
+    <td>
+      <img src="img/compact_512.png" width="400">
+      <em>512</em>
+    </td>
+    <td>
+      <img src="img/compact_1024.png" width="400">
+      <em>1024</em>
+    </td>
   </tr>
 </table>
 
