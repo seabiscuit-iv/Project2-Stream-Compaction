@@ -80,7 +80,7 @@ fn get_plots() -> (Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, A
             prefetch_data.push((cpu_sc_ms, gpu_scan_ms, gpu_scan_efficient_ms, gpu_sc_efficient_ms, gpu_scan_thrust_ms, size));
         }
 
-        for i in 5..=28 {
+        for i in 5..=27 {
             let size = 1 << i;
 
             let prefetch = prefetch_data.iter().find(|x| x.5 == i);
@@ -108,7 +108,7 @@ fn get_plots() -> (Arc<RwLock<Vec<(f32, u32)>>>, Arc<RwLock<Vec<(f32, u32)>>>, A
                     .create(true)  // create if it doesn’t exist
                     .open("output.txt").expect("Unable to open output file");
 
-                let value = run_tests(size, 256).await;
+                let value = run_tests(size, 1024).await;
                 cpu_stream_compact_move.write().unwrap().push((value.0, i));
                 gpu_scan_naive_move.write().unwrap().push((value.1, i));
                 gpu_scan_efficient_move.write().unwrap().push((value.2, i));
