@@ -17,7 +17,8 @@
 
 #define CALCULATE_TID_AUTO CALCULATE_TID(tid)
 
-#define BLOCK_SIZE 128
+extern int blockSize;
+#define BLOCK_SIZE blockSize
 
 #define CALCULATE_BLOCK_THREAD_SIZE(n, block_size, blocks_per_grid, threads_per_block) \
 int threads_per_block = block_size; \

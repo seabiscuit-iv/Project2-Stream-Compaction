@@ -15,7 +15,9 @@
 #include <vector>
 #include <cassert>
 
-const int SIZE = 1 << 25; // feel free to change the size of array
+int SIZE = 1 << 10; // feel free to change the size of array
+bool tests[5] = {true, true, true, true, true};
+int blockSize = 128;
 
 void test_gpu_scan_naive() {
     std::vector<int> read(SIZE, 0);
@@ -116,18 +118,79 @@ void test_cpu_stream_compaction() {
 
 
 
-const int NPOT = SIZE - 3; // Non-Power-Of-Two
-int *a = new int[SIZE];
-int *b = new int[SIZE];
-int *c = new int[SIZE];
+void process_command_line_args(int argc, char* argv[]) {
+    for ( int arg = 1; arg < argc; arg += 2 ) {
+        std::string flag( argv[arg] );
+
+        if ( arg + 1 == argc ) {
+            printf("ERROR: No argument provided for flag %s\n", flag);
+            std::cout.flush();
+        }
+
+        std::string value( argv[arg+1] );
+
+        if ( flag == "-tests" ) {
+            tests[0] = false;
+            tests[1] = false;
+            tests[2] = false;
+            tests[3] = false;
+            tests[4] = false;
+            if ( value == "CPU_STREAM_COMPACT" ) {
+                tests[0] = true;
+            } 
+            else if ( value == "GPU_SCAN_NAIVE" ) {
+                tests[1] = true;
+            }
+            else if ( value == "GPU_SCAN_EFFICIENT" ) {
+                tests[2] = true;
+            }
+            else if ( value == "GPU_STREAM_COMPACT_EFFICIENT" ) {
+                tests[3] = true;
+            }
+            else if ( value == "GPU_SCAN_THRUST" ) {
+                tests[4] = true;
+            }
+            else {
+                printf("ERROR: incorrect parameter for flag -tests (CPU_STREAM_COMPACT, GPU_SCAN_NAIVE, GPU_SCAN_EFFICIENT, GPU_STREAM_COMPACT_EFFICIENT, GPU_SCAN_THRUST)\n");
+                std::cout.flush();
+                exit(1);
+            }
+        }
+        else if ( flag == "-size" ) {
+            try {
+                SIZE = std::stoi(value);
+            } catch (...) { 
+                printf("ERROR: incorrect value type for flag -size, requires integer\n");
+                std::cout.flush();
+                exit(1);
+            }
+        }
+        else if ( flag == "-blocksize" ) {
+            try {
+                blockSize = std::stoi(value);
+            } catch (...) { 
+                printf("ERROR: incorrect value type for flag -blocksize, requires integer\n");
+                std::cout.flush();
+                exit(1);
+            }
+        }
+        else {
+            printf("ERROR: no known flag %s\n", flag);
+            std::cout.flush();
+            exit(1);
+        }
+    }
+}
+
+
 
 int main(int argc, char* argv[]) {
- 
-    test_cpu_stream_compaction();
-    test_gpu_scan_naive();
-    test_gpu_scan_work_efficient();
-    test_gpu_stream_compaction_work_efficient();
-    test_gpu_scan_thrust();
 
-    system("pause");
+    process_command_line_args(argc, argv);
+ 
+    if (tests[0]) test_cpu_stream_compaction();
+    if (tests[1]) test_gpu_scan_naive();
+    if (tests[2]) test_gpu_scan_work_efficient();
+    if (tests[3]) test_gpu_stream_compaction_work_efficient();
+    if (tests[4]) test_gpu_scan_thrust();
 }
