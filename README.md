@@ -37,7 +37,48 @@ The graphs below show runtime (ms) against input data size. Data size is plotted
 
 ## Basic CPU Implementation
 
-Insert basic implementation description
+The CPU implementations can be found in `src/cpu.cu`. 
+
+1. `StreamCompaction::CPU::scan`  
+Implements a standard prefix-sum (scan) algorithm, starting at the beginning of the array and accumulating values iteratively:
+```py
+scan(data) -> out:
+  out[0] = 0;
+  for i in 1..n do
+    out[i] = out[i-1] + data[i-1]
+```
+
+1. `StreamCompaction::CPU::compactWithoutScan`  
+Performs stream compaction without using scan, by iteratively appending nonzero values to an output array:
+```py
+compactWithoutScan(data) -> out, len:
+  c = 0
+  for i in 0..n do
+    if data[i] != 0 then
+      out[c] = data[i]
+      c += 1
+  
+  len = c
+```
+
+1. `StreamCompaction::CPU::compactWithScan`  
+Implements stream compaction using the scan function, resembling the parallel algorithm used for the GPU implementation:
+```py
+compactWithScan(data) -> out, len:
+  flags = [0; n]
+  scanout = [0; n]
+
+  for i in 0..n do
+    flags[i] = if data[i] == 0 then 0 else 1
+
+  scanout = scan(flags)
+
+  for i in 0..n do
+    if flags[i] == 1 then
+      out[scanout[i]] = data[i]
+
+  len = scanout[n-1] + flags[n-1]
+```
 
 ### Scan
 
