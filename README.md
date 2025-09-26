@@ -9,7 +9,8 @@ CUDA Stream Compaction
 
 ## Table of Contents
 
-- [Performance Analysis](#performance-analysis)
+- [Overview](#overview)
+- [Implementation and Performance Analysis](#implementation-and-performance-analysis)
   - [CPU](#basic-cpu-implementation)
     - [Scan](#scan)
     - [Stream Compaction](#stream-compaction)
@@ -25,7 +26,21 @@ CUDA Stream Compaction
     - [Scan](#scan-4)
     - [Stream Compaction](#stream-compaction-3)
 
-## Performance Analysis
+
+
+## Overview
+This project implements and benchmarks multiple algorithms for **stream compaction** and **scan** on both the CPU and GPU. Stream compaction is the process of removing unwanted elements from an array(*in our case, removing zeroes from an array of integers*) while maintaining the order of remaining elements, and scan computes prefix sums of an array.
+
+This project contains the following versions of `scan` and `compact`:
+
+- **CPU**: iterative scan and stream compaction using standard sequential methods
+- **GPU Naive**: a straightforward parallel implementation using simple GPU scan kernels  
+- **GPU Work-Efficient**: an optimized parallel algorithm that reduces redundant work
+- **GPU Thread-Efficient**: further optimizes GPU execution by minimizing idle threads through striding
+- **GPU Thrust**: leverages NVIDIA’s Thrust library for highly optimized scan and compaction routines
+
+
+## Implementation and Performance Analysis
 
 Performance data was collected for each implementation. CPU timings were measured with `std::chrono`, and GPU timings with `cudaEvents`.
 
