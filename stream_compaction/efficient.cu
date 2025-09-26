@@ -107,7 +107,7 @@ namespace StreamCompaction {
             cudaMemcpy(&scanout_end, scanout + (n-1), sizeof(int), cudaMemcpyDeviceToHost);
             cudaMemcpy(&flags_end, flags + (n-1), sizeof(int), cudaMemcpyDeviceToHost);
 
-            int len = scanout_end + flags_end;
+            int len = scanout_end + flags_end + 1;
             
             cudaMalloc((void**)&write, len * sizeof(int));
 

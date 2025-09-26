@@ -10,36 +10,102 @@ CUDA Stream Compaction
 ## Table of Contents
 
 - [Performance Analysis](#performance-analysis)
-  - [Basic](#basic)
+  - [CPU](#basic-cpu-implementation)
     - [Scan](#scan)
     - [Stream Compaction](#stream-compaction)
-  - [Thread](#thread)
-    - [Thread-Efficient Scan](#thread-efficient-scan)
-    - [Thread-Efficient Stream Compaction](#thread-efficient-stream-compaction)
+  - [GPU Naive](#gpu-naive)
+    - [Scan](#scan-1)s
+  - [GPU Work Efficient](#gpu-work-efficiency)
+    - [Scan](#scan-2)
+    - [Stream Compaction](#stream-compaction-1)
+  - [GPU Thread Efficient](#gpu-thread-efficient)  
+    - [Scan](#scan-3)
+    - [Stream Compaction](#stream-compaction-2)
+  - [GPU Thrust](#gpu-thrust)
+    - [Scan](#scan-4)
+    - [Stream Compaction](#stream-compaction-3)
 
 ## Performance Analysis
 
-### Basic
+Insert graph info
+
+## Basic CPU Implementation
+
+Insert basic implementation description
 
 ### Scan
 
 <div align="center">
 
-![scan_256_block_size](img/scan_256_old.png)
+  ![cpu_scan_256_block_size](img/scan_256_cpu.png)
+</div>
+
+### Stream Compaction
+
+<div align="center">
+
+  ![cpu_stream_compaction_256_block_size](img/stream_compaction_256_cpu.png)
+</div>
+
+
+## GPU Naive
+
+Insert GPU Naive implementation description
+
+
+
+
+
+### Scan
+
+<div align="center">
+
+![naive_scan_256_block_size](img/scan_256_naive.png)
 <em>Block Size 256</em>
 
 <table>
   <tr>
     <td>
-      <img src="img/scan_128_old.png" width="400">
+      <img src="img/scan_128_naive.png" width="400">
       <em>128</em>
     </td>
     <td>
-      <img src="img/scan_512_old.png" width="400">
+      <img src="img/scan_512_naive.png" width="400">
       <em>512</em>
     </td>
     <td>
-      <img src="img/scan_1024_old.png" width="400">
+      <img src="img/scan_1024_naive.png" width="400">
+      <em>1024</em>
+    </td>
+  </tr>
+</table>
+
+</div>
+
+
+
+
+## GPU Work Efficiency
+
+Insert GPU Work Efficient implementation description
+
+<div align="center">
+
+![work_efficient_scan_256_block_size](img/scan_256_work_efficient.png)
+<em>Block Size 256</em>
+
+<table>
+  <tr>
+    <td>
+      <img src="img/scan_128_work_efficient.png" width="400">
+      <em>128</em>
+    </td>
+    <td>
+      <img src="img/scan_512_work_efficient.png" width="400">
+      <em>512</em>
+    </td>
+    <td>
+      <img src="img/scan_1024_work_efficient.png" width="400">
       <em>1024</em>
     </td>
   </tr>
@@ -51,20 +117,20 @@ CUDA Stream Compaction
 
 <div align="center">
 
-![compact_256_block_size](img/stream_compaction_256_old.png)
+![work_efficient_compact_256_block_size](img/stream_compaction_256_work_efficient.png)
 <em>Block Size 256</em>
 
 <table>
   <tr>
-    <td><img src="img/stream_compaction_128_old.png" width="400">
+    <td><img src="img/stream_compaction_128_work_efficient.png" width="400">
       <em>128</em>
     </td>
     <td>
-      <img src="img/stream_compaction_512_old.png" width="400">
+      <img src="img/stream_compaction_512_work_efficient.png" width="400">
       <em>512</em>
     </td>
     <td>
-      <img src="img/stream_compaction_1024_old.png" width="400">
+      <img src="img/stream_compaction_1024_work_efficient.png" width="400">
       <em>1024</em>
     </td>
   </tr>
@@ -72,9 +138,128 @@ CUDA Stream Compaction
 
 </div>
 
-### Thread Efficiency
-
-### Thread-Efficient Scan
 
 
-### Thread-Efficient Stream Compaction
+
+
+
+
+
+
+
+## GPU Thread Efficient
+
+Insert GPU Work Efficient implementation description
+
+### Scan
+
+<div align="center">
+
+![thread_efficient_scan_256_block_size](img/scan_256_thread_efficient.png)
+<em>Block Size 256</em>
+
+<table>
+  <tr>
+    <td>
+      <img src="img/scan_128_thread_efficient.png" width="400">
+      <em>128</em>
+    </td>
+    <td>
+      <img src="img/scan_512_thread_efficient.png" width="400">
+      <em>512</em>
+    </td>
+    <td>
+      <img src="img/scan_1024_thread_efficient.png" width="400">
+      <em>1024</em>
+    </td>
+  </tr>
+</table>
+
+</div>
+
+### Stream Compaction
+
+<div align="center">
+
+![thread_efficient_compact_256_block_size](img/stream_compaction_256_thread_efficient.png)
+<em>Block Size 256</em>
+
+<table>
+  <tr>
+    <td><img src="img/stream_compaction_128_thread_efficient.png" width="400">
+      <em>128</em>
+    </td>
+    <td>
+      <img src="img/stream_compaction_512_thread_efficient.png" width="400">
+      <em>512</em>
+    </td>
+    <td>
+      <img src="img/stream_compaction_1024_thread_efficient.png" width="400">
+      <em>1024</em>
+    </td>
+  </tr>
+</table>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+## GPU Thrust
+
+Insert GPU Thrust implementation description
+
+<div align="center">
+
+![thrust_scan_256_block_size](img/scan_256_thrust.png)
+<em>Block Size 256</em>
+
+<table>
+  <tr>
+    <td>
+      <img src="img/scan_128_thrust.png" width="400">
+      <em>128</em>
+    </td>
+    <td>
+      <img src="img/scan_512_thrust.png" width="400">
+      <em>512</em>
+    </td>
+    <td>
+      <img src="img/scan_1024_thrust.png" width="400">
+      <em>1024</em>
+    </td>
+  </tr>
+</table>
+
+</div>
+
+### Stream Compaction
+
+<div align="center">
+
+![thrust_compact_256_block_size](img/stream_compaction_256_thrust.png)
+<em>Block Size 256</em>
+
+<table>
+  <tr>
+    <td><img src="img/stream_compaction_128_thrust.png" width="400">
+      <em>128</em>
+    </td>
+    <td>
+      <img src="img/stream_compaction_512_thrust.png" width="400">
+      <em>512</em>
+    </td>
+    <td>
+      <img src="img/stream_compaction_1024_thrust.png" width="400">
+      <em>1024</em>
+    </td>
+  </tr>
+</table>
+
+</div>

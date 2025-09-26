@@ -11,33 +11,78 @@ use tokio::{
 use std::io::Write;
 
 const BLOCK_SIZES: [u32; 4] = [128, 256, 512, 1024];
-const RESET_ALL: bool = true;
+const RESET_ALL: bool = false;
 
-// enum Buffer {
-//     CPUStreamCompactionWithScan = 0,
-//     CPUStreamCompactionWithoutScan = 1,
-//     GPUScanNaive = 2,
-//     GPUScanEfficient = 3,
-//     GPUStreamCompactionEfficient = 4,
-//     GPUScanThrust = 5,
-//     CPUScan = 6,
-//     BufferCount = 7,
-// }
-
-const BUFFER_COUNT: usize = 9;
+const BUFFER_COUNT: usize = 10;
 
 const BUFFER_TITLES : [&str; BUFFER_COUNT] = [
+    "CPU Scan",
+    "CPU Compaction without Scan",
+    "CPU Compaction with Scan",
     "GPU Scan Naive",
     "GPU Scan Work Efficient",
     "GPU Stream Compaction Work Efficient",
+    "GPU Scan Thread Efficient",
+    "GPU Stream Compaction Thread Efficient",
     "GPU Scan Thrust",
-    "CPU Compaction with Scan",
-    "CPU Compaction without Scan",
-    "CPU Scan",
     "GPU Stream Compaction Thrust",
-    "GPU Scan Thread Efficient"
 ];
 
+const CONFIG_CPU: [bool; BUFFER_COUNT] = [
+    true,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+];
+
+const CONFIG_NAIVE: [bool; BUFFER_COUNT] = [
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+];
+
+const CONFIG_WORK_EFFICIENT: [bool; BUFFER_COUNT] = [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+];
+
+const CONFIG_THREAD_EFFICIENT: [bool; BUFFER_COUNT] = [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+];
+
+const CONFIG_THRUST: [bool; BUFFER_COUNT] = [true; 10];
+
+const EXTENSION : &str = env!("EXTENSION");
 
 fn main() -> Result<(), eframe::Error> {
     let options = NativeOptions {  
@@ -64,7 +109,8 @@ fn main() -> Result<(), eframe::Error> {
 pub struct App {
     current: Tab,
     buffers: [Arc<RwLock<Vec<(f32, u32)>>>; BUFFER_COUNT],
-    block_size: u32
+    block_size: u32,
+    frame: u32
 }
 
 impl App {
@@ -73,7 +119,8 @@ impl App {
 
         Self { current: Tab::Scan, 
             buffers: plots,
-            block_size
+            block_size,
+            frame: 0
         }
     }
 }
@@ -153,6 +200,7 @@ const COLORS: [Color32; 6] = [Color32::RED, Color32::BLUE, Color32::GREEN, Color
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.frame += 1;
         egui::TopBottomPanel::top("tab_bar").show(ctx, |ui| {
             ui.add_space(2.0); // top padding
             ui.horizontal_wrapped(|ui| {
@@ -160,15 +208,23 @@ impl eframe::App for App {
                 ui.selectable_value(&mut self.current, Tab::StreamCompaction, "StreamCompaction");
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("Screenshot").clicked() {
+                    if ui.button("Screenshot").clicked() || self.frame == 10 {
                         let screen = Screen::from_point(0, 0).unwrap();
                         let image = screen.capture().unwrap();
                         let tab = match self.current {
                             Tab::Scan => "scan",
                             Tab::StreamCompaction => "stream_compaction"
                         };
-                        let file_name = format!("../img/{}_{}_thread_efficient.png", tab, self.block_size);
+                        let file_name = format!("../img/{}_{}_{}.png", tab, self.block_size, EXTENSION);
                         image.save(file_name).unwrap();
+
+                        if let Tab::Scan = self.current {
+                            self.frame = 0;
+                            self.current = Tab::StreamCompaction;
+                        }
+                        else {
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
                     }
 
                     if ui.button("Reset").clicked() {
@@ -190,6 +246,8 @@ impl eframe::App for App {
                 })
                 .include_x(0.0)
                 .include_y(0.0)
+                .include_y(300.0)
+                .include_x(27.0)
                 // .include_x(0.0)
                 // .include_x(500_00.0)
                 // .include_y(0.0)
@@ -203,9 +261,18 @@ impl eframe::App for App {
                         Tab::StreamCompaction => |x: &str| x.contains("Compaction")
                     };
 
+                    let my_config = match EXTENSION {
+                        "cpu" => CONFIG_CPU,
+                        "naive" => CONFIG_NAIVE,
+                        "work_efficient" => CONFIG_WORK_EFFICIENT,
+                        "thread_efficient" => CONFIG_THREAD_EFFICIENT,
+                        "thrust" => CONFIG_THRUST,
+                        _ => panic!("ERROR: Incorrect Config detected")
+                    };
+
                     buffers.iter()
                         .enumerate()
-                        .filter(|(i, _)| identifier(BUFFER_TITLES[*i]))
+                        .filter(|(i, _)| identifier(BUFFER_TITLES[*i]) && my_config[*i])
                         .enumerate()
                         .for_each(|(c, (i, buf))| {
                             plot_ui.line(

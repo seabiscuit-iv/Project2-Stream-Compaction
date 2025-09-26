@@ -40,13 +40,11 @@ namespace StreamCompaction {
                 const int *idata, const int *bools, const int *indices) {
             CALCULATE_TID_AUTO;
 
-            if ( tid > n ) {
+            if ( tid >= n ) {
                 return;
             } 
 
-            if ( bools[tid] == 1 ) {
-                odata[indices[tid]] = idata[tid];
-            }
+            odata[indices[tid]] = bools[tid] == 1 ? idata[tid] : odata[indices[tid]];
         }
 
     }
