@@ -97,11 +97,12 @@ compactWithScan(data) -> out, len:
 
 ## GPU Naive
 
-Insert GPU Naive implementation description
+The GPU Naive implementations can be found in `src/naive.cu`.
 
+1. `StreamCompaction::Naive::scan`  
+Implements scan using two phases: an **up-sweep** (reduction/sum) followed by a **down-sweep** (reconstruction of the prefix sum array). For a detailed explanation of this algorithm, see [GPU Gems 3, Chapter 39](https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html).
 
-
-
+*Naive stream compaction was not implemented, as the only difference would be a call to a different scan function (naive vs work efficient)*
 
 ### Scan
 
