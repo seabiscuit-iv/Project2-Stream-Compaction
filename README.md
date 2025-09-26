@@ -48,7 +48,7 @@ scan(data) -> out:
     out[i] = out[i-1] + data[i-1]
 ```
 
-1. `StreamCompaction::CPU::compactWithoutScan`  
+2. `StreamCompaction::CPU::compactWithoutScan`  
 Performs stream compaction without using scan, by iteratively appending nonzero values to an output array:
 ```py
 compactWithoutScan(data) -> out, len:
@@ -61,7 +61,7 @@ compactWithoutScan(data) -> out, len:
   len = c
 ```
 
-1. `StreamCompaction::CPU::compactWithScan`  
+3. `StreamCompaction::CPU::compactWithScan`  
 Implements stream compaction using the scan function, resembling the parallel algorithm used for the GPU implementation:
 ```py
 compactWithScan(data) -> out, len:
@@ -100,9 +100,11 @@ compactWithScan(data) -> out, len:
 The GPU Naive implementations can be found in `src/naive.cu`.
 
 1. `StreamCompaction::Naive::scan`  
-Implements scan using two phases: an **up-sweep** (reduction/sum) followed by a **down-sweep** (reconstruction of the prefix sum array). For a detailed explanation of this algorithm, see [GPU Gems 3, Chapter 39](https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html).
+Implements scan by precomputing sum for a window size `k` for every index `i > k`, where `k` doubles every iteration.
 
-*Naive stream compaction was not implemented, as the only difference would be a call to a different scan function (naive vs work efficient)*
+![gpu_naive_img](img/figure-39-2.jpg)
+
+*Naive stream compaction was omitted, since the only difference would be a call to the naive scan function (naive vs work efficient).*
 
 ### Scan
 
@@ -135,7 +137,13 @@ Implements scan using two phases: an **up-sweep** (reduction/sum) followed by a 
 
 ## GPU Work Efficiency
 
-Insert GPU Work Efficient implementation description
+The GPU Work Efficient implementations can be found in `src/efficient.cu`.
+
+1. `StreamCompaction::Efficient::scan`  
+Implements scan using two phases: an **up-sweep** (reduction/sum) followed by a **down-sweep** (reconstruction of the prefix sum array). For a detailed explanation of this algorithm, see [GPU Gems 3, Chapter 39](https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html).
+
+2. `StreamCompaction::Efficient::compact`
+Implements stream compaction by parallelizing the CPU algorithm above, converting the map and scatter parts into kernels, and making use of work-efficient scan.
 
 <div align="center">
 
@@ -197,7 +205,13 @@ Insert GPU Work Efficient implementation description
 
 ## GPU Thread Efficient
 
-Insert GPU Work Efficient implementation description
+The GPU Thread Efficient implementations can be found in `src/thread_efficient.cu`.
+
+These implementations use the same algorithms as `StreamCompaction::Efficient`, but apply **striding** to minimize idle threads.  
+
+- In the **up-sweep**, the stride doubles each iteration.  
+- In the **down-sweep**, the stride halves each iteration.  
+- The thread index for a given stride is calculated as `tid = (tid * stride) + (stride - 1);`
 
 ### Scan
 
@@ -255,13 +269,9 @@ Insert GPU Work Efficient implementation description
 
 
 
-
-
-
-
 ## GPU Thrust
 
-Insert GPU Thrust implementation description
+
 
 <div align="center">
 
