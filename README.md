@@ -14,7 +14,7 @@ CUDA Stream Compaction
     - [Scan](#scan)
     - [Stream Compaction](#stream-compaction)
   - [GPU Naive](#gpu-naive)
-    - [Scan](#scan-1)s
+    - [Scan](#scan-1)
   - [GPU Work Efficient](#gpu-work-efficiency)
     - [Scan](#scan-2)
     - [Stream Compaction](#stream-compaction-1)
@@ -27,7 +27,13 @@ CUDA Stream Compaction
 
 ## Performance Analysis
 
-Insert graph info
+Performance data was collected for each implementation. CPU timings were measured with `std::chrono`, and GPU timings with `cudaEvents`.
+
+The profiler is implemented in Rust and can be found in `profiling/`. It writes to a cache in `profiling/profile_output/`. *Note that this cache is overwritten on each run and should not be used for multi-configuration results; it only reflects the latest profiling session.*
+
+To run the profiler locally across all configurations, execute `runtests.bat`. This script collects data and generates plot images for each configuration in `img/`.
+
+The graphs below show runtime (ms) against input data size. Data size is plotted on a logscale, where each position corresponds to $2^x$. The y-axis typically ranges from 0–300 ms, but is scaled up for configurations with longer runtimes.
 
 ## Basic CPU Implementation
 
