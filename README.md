@@ -271,7 +271,15 @@ These implementations use the same algorithms as `StreamCompaction::Efficient`, 
 
 ## GPU Thrust
 
+The GPU Thrust implementations can be found in `src/thrust.cu`.
 
+1. `StreamCompaction::Thrust::scan`  
+Implements scan using `thrust::exclusive_scan`
+
+2. `StreamCompaction::Thrust::compact`
+Implements stream compaction using `thrust::remove_if`
+
+Both of these functions have significantly improved speed by using `thrust::device_vector` instead of manual calls to `cudaMalloc` and `cudaFree`
 
 <div align="center">
 
