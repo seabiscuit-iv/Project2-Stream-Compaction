@@ -25,6 +25,10 @@ CUDA Stream Compaction
   - [GPU Thrust](#gpu-thrust)
     - [Scan](#scan-4)
     - [Stream Compaction](#stream-compaction-3)
+- [Potential Future Optimizations](#potential-future-optimizations)
+  - [Global Memory Coalescing](#global-memory-coalescing)
+  - [Shared Memory](#shared-memory)
+  - [Block Based Division](#block-based-division)
 
 
 
@@ -344,3 +348,26 @@ Both of these functions have significantly improved speed by using `thrust::devi
 </table>
 
 </div>
+
+
+## Potential Future Optimizations
+
+The thrust implementation for `scan` and `compact` is highly optimized and well maintained by Nvidia, and considered to be the gold standard for runtime on algorithms. The data collected shows a lot of room for further optimization and reducing runtime to ~10ms, even on extremely large input data sizes. There are plenty of future optimizations we can add to keep up with thrust.
+
+### Global Memory Coalescing
+
+In the current thread-efficient `scan`, striding reduces idle threads but increases the spacing between reads and writes, where now for a stride of `k`, each read/write is spaced out by `k` cells. This results in poor cache utilization and uncoalesced global memory accesses.
+
+For the up-sweep portion, values cannot be discarded. But since we can easily precompute the number of times an index will be acted upon, a possible improvement is to remap our indices so that they sort in descending order of number of kernel operations applied to it. This would result in every kernel having one-to-one memory coalescing for writes. For reads, while not perfect, would still be near and far more cache friendly than an unoptimized version. Down-sweep could likely benefit from a similar remapping. The array could be reorganized using a single remap kernel call. 
+
+This optimization is straightforward for pow-2 array sizes, but less so for arbitrary array sizes. Currently we pad our data array to the next power of two, but this could break down if combined with the [block based division optimization](#block-based-division)
+
+
+### Shared Memory
+
+The thrust implementation for both `scan` and `compact` both use a heavy amount of shared memory as a block-local cache for global memory. Implementing this would likely show a noticeable change across increasing block size. It's also possible within this to reduce the number of bank conflicts by changing the memory access pattern. More details on the exact implementation can be found [here](https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html).
+
+
+### Block Based Division
+
+Our current `scan` algorithm requires array lengths to be powers of two, forcing us to pad our input to the next power of two and potentially double memory usage. A more scalable approach would be block-based division, where we allocate blocks to work on pow-2 sections of the array, and then run a second-pass kernel that will work on its finished outputs. The important distinction here is that the number of blocks we can spawn is free to be any integer, so at most the number of threads and memory bytes we waste is `BLOCK_SIZE - 1`.
